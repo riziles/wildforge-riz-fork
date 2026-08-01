@@ -77,6 +77,12 @@ impl Camera {
     }
 
     /// Face-local right, for movement and simulation.
+    ///
+    /// The planet's tangent frames are left-handed (`north = up × east` in
+    /// `planet::local_frame`), and this vector is computed in that tangent
+    /// space — where the component cross product already yields the physical
+    /// right. Only the view matrix needed the left-handed variants; the
+    /// movement basis itself was always correct.
     pub fn local_right(&self) -> Vec3 {
         self.local_flat_forward().cross(Vec3::Y).normalize()
     }
@@ -96,8 +102,11 @@ impl Camera {
         // All scene vertices subtract `self.pos` before this matrix is applied.
         // Keeping the eye at zero is the renderer's floating origin: depth and
         // projection never cancel two five-thousand-unit planet coordinates.
-        let view = Mat4::look_to_rh(Vec3::ZERO, self.forward(), self.up);
-        let proj = Mat4::perspective_rh(self.fovy, self.aspect.max(0.01), 0.05, 600.0);
+        // The planet's face frames are left-handed, so the view and projection
+        // must be the left-handed variants: the right-handed ones render the
+        // whole world left-right mirrored (A and D appear swapped).
+        let view = Mat4::look_to_lh(Vec3::ZERO, self.forward(), self.up);
+        let proj = Mat4::perspective_lh(self.fovy, self.aspect.max(0.01), 0.05, 600.0);
         proj * view
     }
 }
